@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Service - AidConnect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .requests-list {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .request-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .back-btn {
+            background: #6c757d;
+            margin-top: 20px;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Request Service - AidConnect</h1>
+        <p>As a Seeker, create your aid request here.</p>
+        
+        <form id="requestForm">
+            <input type="text" id="title" placeholder="Request Title" required>
+            <textarea id="description" placeholder="Description" rows="4" required></textarea>
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="food">Food</option>
+                <option value="medical">Medical</option>
+                <option value="shelter">Shelter</option>
+                <option value="education">Education</option>
+                <option value="other">Other</option>
+            </select>
+            <input type="number" id="amount" placeholder="Required Amount" required>
+            <button type="submit">Submit Request</button>
+        </form>
+        <div id="message" class="message"></div>
+        
+        <div class="requests-list">
+            <h2>Your Requests</h2>
+            <div id="requestsContainer"></div>
+        </div>
+        
+        <button class="back-btn" onclick="goBack()">Back to Login</button>
+    </div>
+
+  <script>
+const userId = localStorage.getItem('userId');
+const userRole = localStorage.getItem('userRole');
+
+if (!userId || userRole !== 'seeker') {
+    alert('Access denied. Please login as seeker.');
+    window.location.href = 'index.html';
+}
+
+// show message
+function showMessage(message, type) {
+    const el = document.getElementById('message');
+    el.textContent = message;
+    el.className = `message ${type}`;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function goBack() {
+    window.location.href = 'index.html';
+}
+
+// load seeker requests
+async function loadRequests() {
+    try {
+        const res = await fetch(`http://localhost:3002/requests/user/${userId}`);
+        const data = await res.json();
+        const container = document.getElementById('requestsContainer');
+        container.innerHTML = '';
+
+        data.forEach(r => {
+            const div = document.createElement('div');
+            div.className = 'request-item';
+            div.innerHTML = `
+                <h3>${r.title}</h3>
+                <p>${r.description}</p>
+                <p>Category: ${r.category}</p>
+                <p>Amount: ${r.amount}</p>
+                <p>Status: ${r.status || 'pending'}</p>
+            `;
+            container.appendChild(div);
+        });
+    } catch (err) {
+        showMessage('Failed to load requests', 'error');
+    }
+}
+
+// SUBMIT REQUEST (FIXED)
+document.getElementById('requestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+    const amount = document.getElementById('amount').value;
+
+    try {
+        const res = await fetch('http://localhost:3002/requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                title,
+                description,
+                category,
+                amount
+            })
+        });
+
+        const data = await res.json();
+
+        // 🔥 IMPORTANT FIX
+        if (res.ok) {
+            showMessage('Request submitted successfully!', 'success');
+            document.getElementById('requestForm').reset();
+            loadRequests();
+        } else {
+            showMessage(data.error || 'Request failed', 'error');
+        }
+
+    } catch (err) {
+        console.error(err);
+        showMessage('Server not responding', 'error');
+    }
+});
+
+// load on start
+window.addEventListener('load', loadRequests);
+</script>
+</body>
+</html>

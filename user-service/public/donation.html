@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate via EasyPaisa - AidConnect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 { color: #333; }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #6646a1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #msg {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        #donationsList {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .donation-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Donate via EasyPaisa - AidConnect</h2>
+
+<form id="donationForm">
+    <input type="text" id="name" placeholder="Your Name" required>
+    <input type="text" id="phone" placeholder="EasyPaisa Number" required>
+    <input type="number" id="amount" placeholder="Amount (PKR)" required min="1">
+    <button type="submit">Donate Now</button>
+</form>
+
+<p id="msg"></p>
+
+<div id="donationsList">
+    <h3>Recent Donations</h3>
+</div>
+
+<script>
+const userId = localStorage.getItem("userId") || "demoId";
+
+async function loadDonations() {
+    const res = await fetch("http://localhost:3003/donations");
+    const data = await res.json();
+
+    const list = document.getElementById("donationsList");
+    list.innerHTML = "<h3>Recent Donations</h3>";
+
+    if (data.success) {
+        data.donations.forEach(d => {
+            list.innerHTML += `
+                <div class="donation-item">
+                    <b>${d.donorName}</b> (${d.phoneNumber}) donated PKR ${d.amount}
+                </div>`;
+        });
+    }
+}
+
+loadDonations();
+
+document.getElementById("donationForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const donorName = document.getElementById("name").value;
+    const phoneNumber = document.getElementById("phone").value;
+    const amount = Number(document.getElementById("amount").value);
+
+    const res = await fetch("http://localhost:3003/donations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            donorId: userId,
+            donorName,
+            phoneNumber,
+            amount
+        })
+    });
+
+    const data = await res.json();
+    document.getElementById("msg").innerText =
+        data.success ? "Donation Successful!" : "" + data.error;
+
+    if (data.success) {
+        document.getElementById("donationForm").reset();
+        loadDonations();
+    }
+});
+</script>
+</body>
+</html>

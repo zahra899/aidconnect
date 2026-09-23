@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AidConnect - API Gateway</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 0; color: #333; }
+        nav { background: #667eea; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+        nav .logo { color: white; font-size: 24px; font-weight: bold; }
+        nav ul { list-style: none; display: flex; margin: 0; padding: 0; }
+        nav ul li { margin: 0 15px; }
+        nav ul li a { color: white; text-decoration: none; padding: 10px; border-radius: 5px; transition: background 0.3s; }
+        nav ul li a:hover { background: #5a6fd8; }
+        .hamburger { display: none; flex-direction: column; cursor: pointer; }
+        .hamburger div { width: 25px; height: 3px; background: white; margin: 3px 0; }
+        .container { max-width: 800px; margin: 20px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        h1 { color: #667eea; text-align: center; margin-bottom: 30px; }
+        .page { display: none; }
+        .active { display: block; }
+        form { display: flex; flex-direction: column; align-items: center; }
+        input, select, textarea, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; transition: border-color 0.3s; }
+        input:focus, textarea:focus { border-color: #667eea; outline: none; }
+        button { background: #667eea; color: white; border: none; cursor: pointer; }
+        button:hover { background: #5a6fd8; }
+        .nav-btn { background: #28a745; margin: 5px; width: auto; }
+        .nav-btn:hover { background: #218838; }
+        .message { margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 5px; display: none; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background: #f9f9f9; }
+        .high { border-color: #ffcccc; background: #ffeeee; }
+        @media (max-width: 768px) { nav ul { display: none; flex-direction: column; position: absolute; top: 60px; right: 20px; background: #667eea; width: 200px; border-radius: 5px; } nav ul.show { display: flex; } .hamburger { display: flex; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">🚀 AidConnect</div>
+        <ul id="navMenu">
+            <li><a href="#" onclick="showPage('loginPage')">Login</a></li>
+            <li id="userNav" style="display: none;"><a href="#" onclick="showPage('userPage')">Dashboard</a></li>
+            <li id="adminNav" style="display: none;"><a href="#" onclick="showPage('adminPage')">Admin Dashboard</a></li>
+            <li id="logoutNav" style="display: none;"><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+        <div class="hamburger" onclick="toggleMenu()">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="loginPage" class="page active">
+            <h1>Welcome to AidConnect</h1>
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <select id="role" required>
+                    <option value="">Select Role</option>
+                    <option value="donor">Donor</option>
+                    <option value="seeker">Seeker</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button type="submit">Login</button>
+            </form>
+            <div id="loginMessage" class="message"></div>
+        </div>
+        
+        <div id="userPage" class="page">
+            <h1>User Dashboard</h1>
+            <p>Welcome, <span id="userRole"></span>!</p>
+            <!-- Navigation Buttons -->
+            <div id="seekerActions">
+                <button class="nav-btn" onclick="showSection('createRequest')">Create Request</button>
+                <button class="nav-btn" onclick="showSection('viewRequests')">View My Requests</button>
+            </div>
+            <div id="donorActions">
+                <button class="nav-btn" onclick="showSection('makeDonation')">Make Donation</button>
+            </div>
+            <button class="nav-btn" onclick="showSection('viewNotifications')">View Notifications</button>
+            
+            <div id="createRequest" class="section">
+                <h2>Create Request</h2>
+                <form id="requestForm">
+                    <input type="text" id="title" placeholder="Request Title" required>
+                    <textarea id="description" placeholder="Description" required></textarea>
+                    <input type="number" id="amount" placeholder="Amount Needed" required>
+                    <select id="priority" required>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                    <button type="submit">Submit Request</button>
+                </form>
+                <div id="requestMessage" class="message"></div>
+            </div>
+            
+            <div id="viewRequests" class="section">
+                <h2>Your Requests</h2>
+                <ul id="requestList"></ul>
+            </div>
+            
+            <div id="makeDonation" class="section">
+                <h2>Make Donation</h2>
+                <form id="donationForm">
+                    <input type="text" id="caseId" placeholder="Request ID" required>
+                    <input type="number" id="donationAmount" placeholder="Amount" required>
+                    <button type="submit">Donate</button>
+                </form>
+                <div id="donationMessage" class="message"></div>
+            </div>
+            
+            <div id="viewNotifications" class="section">
+                <h2>Your Notifications</h2>
+                <ul id="notificationList"></ul>
+            </div>
+        </div>
+        
+        <div id="adminPage" class="page">
+            <h1>Admin Dashboard</h1>
+            <button class="nav-btn" onclick="showSection('loadData')">Load All Data</button>
+            <button class="nav-btn" onclick="showSection('sendNotification')">Send Notification</button>
+            
+            <div id="loadData" class="section">
+                <h2>All Data</h2>
+                <div id="dataDisplay"></div>
+            </div>
+            
+            <div id="sendNotification" class="section">
+                <h2>Send Notification</h2>
+                <form id="notificationForm">
+                    <input type="text" id="notifUserId" placeholder="User ID" required>
+                    <textarea id="notifMessage" placeholder="Message" required></textarea>
+                    <button type="submit">Send</button>
+                </form>
+                <div id="notifStatus" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `message ${type}`;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        function toggleMenu() {
+            document.getElementById('navMenu').classList.toggle('show');
+        }
+
+        function logout() {
+            localStorage.clear();
+            showPage('loginPage');
+            document.getElementById('userNav').style.display = 'none';
+            document.getElementById('adminNav').style.display = 'none';
+            document.getElementById('logoutNav').style.display = 'none';
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            try {
+                const response = await fetch('/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    localStorage.setItem('userId', data.user._id);
+                    localStorage.setItem('role', role);
+                    document.getElementById('userRole').textContent = role;
+                    document.getElementById('logoutNav').style.display = 'block';
+                    if (role === 'admin') {
+                        document.getElementById('adminNav').style.display = 'block';
+                        showPage('adminPage');
+                    } else {
+                        document.getElementById('userNav').style.display = 'block';
+                        showPage('userPage');
+                        if (role === 'seeker') document.getElementById('seekerActions').style.display = 'block';
+                        if (role === 'donor') document.getElementById('donorActions').style.display = 'block';
+                        loadUserData();
+                    }
+                    showMessage('loginMessage', `Logged in as ${role}!`, 'success');
+                } else {
+                    showMessage('loginMessage', data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('loginMessage', 'Network error', 'error');
+            }
+        });
+
+        async function loadUserData() {
+            const userId = localStorage.getItem('userId');
+            const role = localStorage.getItem('role');
+            if (role === 'seeker') {
+                const response = await fetch('/requests');
+                const requests = await response.json();
+                const list = document.getElementById('requestList');
+                list.innerHTML = '';
+                requests.filter(r => r.seekerId === userId).forEach(r => {
+                    const li = document.createElement('li');
+                    li.textContent = `${r.title} - $${r.amount} (${r.status})`;
+                    list.appendChild(li);
+                });
+            }
+            const notifResponse = await fetch(`/notifications/${userId}`);
+            const notifications = await notifResponse.json();
+            const notifList = document.getElementById('notificationList');
+            notifList.innerHTML = '';
+            notifications.forEach(n => {
+                const li = document.createElement('li');
+                li.textContent = `${n.sentAt}: ${n.message}`;
+                notifList.appendChild(li);
+            });
+        }
+
+        // Create Request
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const amount = document.getElementById('amount').value;
+            const priority = document.getElementById('priority').value;
+            const seekerId = localStorage.getItem('userId');
+            try {
+                const response = await fetch('/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, amount, priority, seekerId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('requestMessage', 'Request created!', 'success');
+                    loadUserData();
+                } else {
+                    showMessage('requestMessage', data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Request error:', error);
+                showMessage('requestMessage', 'Network error', 'error');
+            }
+        });
+
+        // Make Donation
+        document.getElementById('donationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const caseId = document.getElementById('caseId').value;
+            const amount = document.getElementById('donationAmount').value;
+            const donorId = localStorage.getItem('userId');
+            try {
+                const response = await fetch('/donations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ caseId, donorId, amount })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('donationMessage', 'Donation made!', 'success');
+                } else {
+                    showMessage('donationMessage', data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Donation error:', error);
+                showMessage('donationMessage', 'Network error', 'error');
+            }
+        });
+
+        // Admin Load Data
+        document.getElementById('loadDataBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/admin/data');
+                const data = await response.json();
+                const display = document.getElementById('dataDisplay');
+                display.innerHTML = `
+                    <h3>Users</h3><ul>${data.users.map(u => `<li>${u.username} (${u.role})</li>`).join('')}</ul>
+                    <h3>Requests</h3><ul>${data.requests.map(r => `<li class="${r.priority === 'high' ? 'high' : ''}">${r.title} - $${r.amount} (${r.status}) <button onclick="resolve('${r._id}')">Resolve</button></li>`).join('')}</ul>
+                    <h3>Donations</h3><ul>${data.donations.map(d => `<li>$${d.amount} to ${d.caseId}</li>`).join('')}</ul>
+                    <h3>Notifications</h3><ul>${data.notifications.map(n => `<li>${n.message} to ${n.userId}</li>`).join('')}</ul>
+                `;
+            } catch (error) {
+                console.error('Load data error:', error);
+                showMessage('notifStatus', 'Failed to load data', 'error');
+            }
+        });
+
+        async function resolve(id) {
+            await fetch(`/admin/requests/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) });
+            alert('Resolved!');
+            document.getElementById('loadDataBtn').click();
+        }
+
+        // Send Notification (Admin)
+        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('notifUserId').value;
+            const message = document.getElementById('notifMessage').value;
+            try {
+                const response = await fetch('/admin/notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, message })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('notifStatus', 'Notification sent!', 'success');
+                } else {
+                    showMessage('notifStatus', 'Failed', 'error');
+                }
+            } catch (error) {
+                console.error('Notification error:', error);
+                showMessage('notifStatus', 'Network error', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

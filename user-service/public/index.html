@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Service - AidConnect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .user-info {
+            margin-top: 20px;
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .logout-btn {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        .redirect-message {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            color: #856404;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AidConnect</h1>
+        <p>Welcome! Register or login to get started.</p>
+        
+        <h2>Register</h2>
+        <form id="registerForm">
+            <input type="text" id="regUsername" placeholder="Username" required>
+            <input type="password" id="regPassword" placeholder="Password" required>
+            <select id="regRole" required>
+                <option value="">Select Role</option>
+                <option value="donor">Donor</option>
+                <option value="seeker">Seeker</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button type="submit">Register</button>
+        </form>
+        <div id="regMessage" class="message"></div>
+        
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Username" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <select id="loginRole" required>
+                <option value="">Select Role</option>
+                <option value="donor">Donor</option>
+                <option value="seeker">Seeker</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button type="submit">Login</button>
+        </form>
+        <div id="loginMessage" class="message"></div>
+        <div id="redirectMessage" class="redirect-message"></div>
+        
+        <div id="userInfo" class="user-info">
+            <p>Logged in as: <span id="userRole"></span></p>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `message ${type}`;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showRedirectMessage(role) {
+            const el = document.getElementById('redirectMessage');
+            el.textContent = `Redirecting to ${role} dashboard...`;
+            el.style.display = 'block';
+        }
+
+       function navigateByRole(role, userId) {
+    // save login info
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('userRole', role);
+
+    showRedirectMessage(role);
+
+    // redirect to correct frontend pages
+    setTimeout(() => {
+        if (role === 'admin') {
+            window.location.href = 'admin.html';
+        } 
+        else if (role === 'seeker') {
+            window.location.href = 'request.html';
+        } 
+        else if (role === 'donor') {
+            window.location.href = 'donation.html';
+        } 
+        else {
+            alert('Unknown role');
+        }
+    }, 1000);
+}
+
+        function logout() {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userRole');
+            document.getElementById('userInfo').style.display = 'none';
+            showMessage('loginMessage', 'Logged out!', 'success');
+        }
+
+        // Check if user is already logged in
+        window.addEventListener('load', () => {
+            const userId = localStorage.getItem('userId');
+            const userRole = localStorage.getItem('userRole');
+            if (userId && userRole) {
+                document.getElementById('userRole').textContent = userRole;
+                document.getElementById('userInfo').style.display = 'block';
+            }
+        });
+
+        // Register
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+            
+            console.log('Attempting register:', { username, password, role });
+            try {
+                const response = await fetch('http://localhost:3001/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const data = await response.json();
+                console.log('Register response:', data);
+                if (data.success) {
+                    showMessage('regMessage', 'Registered successfully! Please login.', 'success');
+                    document.getElementById('registerForm').reset();
+                } else {
+                    showMessage('regMessage', data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showMessage('regMessage', 'Network error. Is server running?', 'error');
+            }
+        });
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            console.log('Attempting login:', { username, password, role });
+            try {
+                const response = await fetch('http://localhost:3001/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const data = await response.json();
+                console.log('Login response:', data);
+                if (data.success) {
+                    showMessage('loginMessage', `Login successful!`, 'success');
+                    document.getElementById('loginForm').reset();
+                    
+                    // Navigate based on role
+                    navigateByRole(data.user.role, data.user._id);
+                } else {
+                    showMessage('loginMessage', data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('loginMessage', 'Network error. Is server running?', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

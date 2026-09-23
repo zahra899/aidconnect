@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AidConnect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            margin: 0 5px;
+            transition: background 0.3s;
+        }
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .requests-list, .donations-list {
+            margin-top: 20px;
+        }
+        .item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .item h3 {
+            margin: 0 0 10px 0;
+        }
+        .item p {
+            margin: 5px 0;
+        }
+        button {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .approve-btn { background: #28a745; }
+        .approve-btn:hover { background: #218838; }
+        .reject-btn { background: #dc3545; }
+        .reject-btn:hover { background: #c82333; }
+        .back-btn {
+            background: #6c757d;
+            margin-top: 20px;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+        }
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard - AidConnect</h1>
+        <p>Manage requests, donations, and send notifications.</p>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('requests')">Requests</button>
+            <button class="tab" onclick="showTab('donations')">Donations</button>
+            <button class="tab" onclick="showTab('notifications')">Notifications</button>
+        </div>
+        
+        <div id="requests" class="tab-content active">
+            <h2>Pending Requests</h2>
+            <div id="requestsContainer" class="requests-list"></div>
+        </div>
+        
+        <div id="donations" class="tab-content">
+            <h2>All Donations</h2>
+            <div id="donationsContainer" class="donations-list"></div>
+        </div>
+        
+        <div id="notifications" class="tab-content">
+            <h2>Send Notification</h2>
+            <form id="notificationForm">
+                <input type="text" id="notifTitle" placeholder="Notification Title" required>
+                <textarea id="notifMessage" placeholder="Message" rows="4" required></textarea>
+                <select id="notifTarget" required>
+                    <option value="">Select Target</option>
+                    <option value="all">All Users</option>
+                    <option value="donors">Donors</option>
+                    <option value="seekers">Seekers</option>
+                </select>
+                <button type="submit">Send Notification</button>
+            </form>
+            <div id="notifStatus" class="message"></div>
+        </div>
+        
+        <button class="back-btn" onclick="goBack()">Back to Login</button>
+    </div>
+    
+
+    <script>
+/* ================= AUTH ================= */
+const userId = localStorage.getItem('userId');
+const userRole = localStorage.getItem('userRole');
+
+if (!userId || userRole !== 'admin') {
+    alert('Access denied');
+    window.location.href = 'index.html';
+}
+
+/* ================= TABS ================= */
+function showTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+
+    if (tab === 'requests') loadRequests();
+    if (tab === 'donations') loadDonations();
+}
+
+/* ================= REQUESTS (3002) ================= */
+async function loadRequests() {
+    const res = await fetch('http://localhost:3002/requests');
+    const requests = await res.json();
+
+    const container = document.getElementById('requestsContainer');
+    container.innerHTML = '';
+
+    requests.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'item';
+
+        let buttons = '';
+
+        if (r.status === 'pending') {
+            buttons = `
+                <button class="approve-btn" onclick="updateStatus('${r._id}','approved')">Approve</button>
+                <button class="reject-btn" onclick="updateStatus('${r._id}','rejected')">Reject</button>
+            `;
+        }
+        else if (r.status === 'approved') {
+            buttons = `
+                <button class="approve-btn" onclick="updateStatus('${r._id}','solved')">
+                    Solved (Donation Received)
+                </button>
+            `;
+        }
+        else if (r.status === 'solved') {
+            buttons = `<span style="color:green;font-weight:bold;">✔ SOLVED</span>`;
+        }
+
+        div.innerHTML = `
+            <h3>${r.title}</h3>
+            <p>${r.description}</p>
+            <p>
+                Category: ${r.category} |
+                Amount: PKR ${r.amount} |
+                Status: <b>${r.status.toUpperCase()}</b>
+            </p>
+            ${buttons}
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+/* ================= UPDATE STATUS ================= */
+async function updateStatus(id, status) {
+    if (status === 'solved') {
+        const ok = confirm('Donation received? Mark this request as SOLVED?');
+        if (!ok) return;
+    }
+
+    await fetch(`http://localhost:3002/requests/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    });
+
+    loadRequests();
+}
+
+/* ================= DONATIONS (3003) ================= */
+async function loadDonations() {
+    const res = await fetch('http://localhost:3003/donations');
+    const data = await res.json();
+
+    const container = document.getElementById('donationsContainer');
+    container.innerHTML = '';
+
+    data.donations.forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+            <p>
+                <b>${d.donorName}</b> donated PKR ${d.amount} <br>
+                Phone: ${d.phoneNumber}
+            </p>
+        `;
+        container.appendChild(div);
+    });
+}
+
+/* ================= INIT ================= */
+window.onload = loadRequests;
+</script>
+</body>
+</html>
