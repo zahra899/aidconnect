@@ -10,4 +10,6 @@ Microservices-based community assistance platform.
 - `admin-service`
 
 ## Tech Stack
-- Node.js / Express (Microservices)
+- **Database:** MongoDB
+- **Backend / Microservices:** Node.js, Express
+- **Frontend / UI:** HTML, CSS, JavaScript
